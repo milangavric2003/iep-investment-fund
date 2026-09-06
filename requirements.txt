@@ -1,0 +1,6 @@
+Flask
+Flask-Migrate
+Flask-SQLAlchemy
+PyMySQL
+email-validator
+flask-jwt-extended
