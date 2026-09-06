@@ -30,6 +30,7 @@ def invalid_email(email):
 
 @application.route("/register", methods=["POST"])
 def register():
+    # Safely extract JSON without throwing a 400 exception on bad input
     payload = request.get_json(silent=True) or {}
 
     for field_name in ("forename", "surname", "email", "password"):
@@ -60,6 +61,7 @@ def register():
 
 @application.route("/login", methods=["POST"])
 def login():
+    # Safely extract JSON without throwing a 400 exception on bad input
     payload = request.get_json(silent=True) or {}
 
     for field_name in ("email", "password"):
