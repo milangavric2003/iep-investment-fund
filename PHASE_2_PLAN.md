@@ -17,6 +17,14 @@ Kubernetes and the optional Ethereum voting extension remain excluded from this 
 
 The existing authentication service, MySQL database, migrations, seed data, and account endpoints remain unchanged unless a small shared configuration change is required.
 
+## Python Environment Convention
+
+- Use only the existing project `.venv` for Phase 2 development, dependency installation, migrations, scripts, and validation.
+- The environment must use Python 3.13. Do not run project commands with the Windows global Python directly.
+- Keep every runtime dependency in `requirements.txt`, including `pymongo` and `redis`, so the same environment can be recreated on the defense machine.
+- Docker images install dependencies from `requirements.txt` and do not copy the host `.venv`.
+- Windows commands in the runbook must use the activated `.venv` or explicit paths such as `.venv\\Scripts\\python.exe` and `.venv\\Scripts\\flask.exe`.
+
 ## Existing Examples Used
 
 The implementation will follow the local exercises as closely as possible:
@@ -27,6 +35,8 @@ The implementation will follow the local exercises as closely as possible:
 - `Docker-vezbe5/Synchronization/publish_subscribe.py` for Redis connection configuration;
 - `Docker-vezbe5/JWT_ban/admin.py` for Redis usage inside a Flask service and configuration through environment variables;
 - `Docker-vezbe5` Dockerfiles and Compose files for service separation.
+- `Kubernetes-vezbe6` for maybe some coding, but no kubernetes implementation still.
+- `Other files from IEP folder if needed`
 
 The project will improve the exercise examples where needed for this specification: no hardcoded `localhost` inside containers, persistent volumes, environment-based configuration, UUID order identifiers, explicit validation, and clear startup instructions.
 
@@ -47,6 +57,7 @@ iep-investment-fund/
     mongo_seed.json                   # optional demo assets
     redis_keys.md                     # short explanation of the Redis order format
 ```
+!!! maybe organize structure from above in some folders - so it be better organized
 
 The exact module names may be adjusted during implementation if an existing local pattern makes a better fit. The two HTTP services should be separate processes because the assignment explicitly describes employee and director containers.
 
@@ -339,7 +350,7 @@ Keep the existing MySQL, Adminer, and authentication services working.
 Suggested host ports, subject to conflicts:
 
 - employee API: `5001`;
-- director API: `5002`;
+- director API: `5003` (mapped to container port `5002`; change if unavailable);
 - MongoDB: `27017`;
 - Redis: `6379`.
 
@@ -369,7 +380,7 @@ The exact inspection commands will be documented after implementation.
 
 ## Phase 2.8: Demonstration and Defense Runbook
 
-Update `README.md` with a reproducible sequence:
+Update `README.md` with a reproducible sequence and don't shorten already existing useful readme passuses:
 
 1. Start Docker Desktop.
 2. Run `docker compose -f development.yaml up --build`.
@@ -419,3 +430,15 @@ Do not modify application code until this plan is reviewed and approved. After a
 5. director pending orders and decisions;
 6. report aggregation;
 7. Compose persistence, runbook, and end-to-end tests.
+
+## Current Implementation Status
+
+Phase 2 is implemented and running through Docker Compose. The current host endpoints are:
+
+- authentication: `http://localhost:5000`;
+- employee: `http://localhost:5001`;
+- director: `http://localhost:5003` mapped to container port `5002`;
+- MongoDB: `localhost:27017`;
+- Redis: `localhost:6379`.
+
+Validated behavior includes JWT role separation, MongoDB nested search filters, BUY order creation and approval, report aggregation, MongoDB persistence, and Redis persistence. Kubernetes and blockchain remain excluded.

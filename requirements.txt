@@ -4,3 +4,5 @@ Flask-SQLAlchemy
 PyMySQL
 email-validator
 flask-jwt-extended
+pymongo
+redis

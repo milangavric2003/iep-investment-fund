@@ -38,5 +38,73 @@ services:
       database:
         condition: service_healthy
 
+  mongodb:
+    image: mongo:8.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_volume:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_volume:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  employee:
+    build:
+      context: .
+      dockerfile: employee.dockerfile
+    environment:
+      MONGO_URL: mongodb://root:example@mongodb:27017/?authSource=admin
+      MONGO_DATABASE: investment_fund
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      JWT_SECRET_KEY: development-secret-key-with-at-least-32-bytes
+    ports:
+      - "5001:5001"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  director:
+    build:
+      context: .
+      dockerfile: director.dockerfile
+    environment:
+      MONGO_URL: mongodb://root:example@mongodb:27017/?authSource=admin
+      MONGO_DATABASE: investment_fund
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      JWT_SECRET_KEY: development-secret-key-with-at-least-32-bytes
+    ports:
+      - "5003:5002"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
 volumes:
   database_volume:
+  mongodb_volume:
+  redis_volume:

@@ -6,6 +6,14 @@ Implement the investment fund system described in `IEP_Projekat_2026.pdf` using 
 
 All source code, comments, configuration keys, API messages, database names, and commit messages will be written in English.
 
+## Python Environment Convention
+
+- Use only the project's existing `.venv` for local development, package installation, migrations, tests, and manual scripts.
+- The `.venv` is based on the globally installed Python 3.13 interpreter, but the global interpreter must not be used directly for project work.
+- Every runtime dependency must be listed in the appropriate `requirements.txt` file so the environment can be recreated on the defense machine.
+- Docker images install dependencies from `requirements.txt`; the host `.venv` is not copied into images.
+- Commands in documentation must use the activated project environment or its explicit `.venv\\Scripts\\python.exe` and `.venv\\Scripts\\flask.exe` paths on Windows.
+
 The implementation will stay close to the structure and techniques used in:
 
 - `flask-vezbe1`
