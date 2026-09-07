@@ -149,6 +149,167 @@ Use MongoDB Compass with the MongoDB URI above. The demo collection is `investme
 
 Redis inspection commands are documented in [redis_keys.md](redis_keys.md).
 
+## Kubernetes Runbook
+
+The Kubernetes configuration is in the `k8s` directory. The documented target is Docker Desktop Kubernetes. The Compose setup remains available and is not replaced by Kubernetes.
+
+### 1. Check prerequisites
+
+Enable Kubernetes in Docker Desktop, then verify the cluster:
+
+```powershell
+kubectl config current-context
+kubectl get nodes
+```
+
+The expected context is usually `docker-desktop`, and the node should be `Ready`.
+
+### 2. Build local images
+
+Run these commands from the project directory. Docker Desktop Kubernetes can use images built by the local Docker engine:
+
+```powershell
+docker build -t iep-authentication:k8s -f authentication.dockerfile .
+docker build -t iep-employee:k8s -f employee.dockerfile .
+docker build -t iep-director:k8s -f director.dockerfile .
+```
+
+The manifests use `imagePullPolicy: IfNotPresent`, so Kubernetes will use these local images.
+
+### 3. Apply configuration and storage
+
+```powershell
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/secrets.yaml
+kubectl apply -f k8s/mysql-storage.yaml
+kubectl apply -f k8s/mysql.yaml
+kubectl apply -f k8s/mongodb.yaml
+kubectl apply -f k8s/redis.yaml
+```
+
+Wait for the three databases:
+
+```powershell
+kubectl wait --for=condition=available deployment/mysql -n iep-investment-fund --timeout=180s
+kubectl wait --for=condition=available deployment/mongodb -n iep-investment-fund --timeout=180s
+kubectl wait --for=condition=available deployment/redis -n iep-investment-fund --timeout=180s
+kubectl get pods,pvc,services -n iep-investment-fund
+```
+
+### 4. Run the relational migration Job
+
+```powershell
+kubectl apply -f k8s/authentication-migration.yaml
+kubectl wait --for=condition=complete job/authentication-migration -n iep-investment-fund --timeout=180s
+kubectl logs job/authentication-migration -n iep-investment-fund
+```
+
+The Job creates the MySQL tables. The authentication Deployment also runs the existing retryable startup script and idempotent relational seed.
+
+### 5. Start application services
+
+```powershell
+kubectl apply -f k8s/authentication.yaml
+kubectl apply -f k8s/employee.yaml
+kubectl apply -f k8s/director.yaml
+kubectl apply -f k8s/adminer.yaml
+
+kubectl rollout status deployment/authentication -n iep-investment-fund --timeout=180s
+kubectl rollout status deployment/employee -n iep-investment-fund --timeout=180s
+kubectl rollout status deployment/director -n iep-investment-fund --timeout=180s
+kubectl get pods -n iep-investment-fund -l app=employee
+```
+
+The employee Deployment must have exactly three ready Pods.
+
+### 6. Access APIs with port-forward
+
+NodePort Services are defined on ports `30050`-`30052`, but port-forward is more portable across local Kubernetes installations and avoids Windows host port behavior differences. Use separate terminals for these commands:
+
+```powershell
+kubectl port-forward service/authentication 31050:5000 -n iep-investment-fund
+kubectl port-forward service/employee 31051:5001 -n iep-investment-fund
+kubectl port-forward service/director 31052:5002 -n iep-investment-fund
+```
+
+Then use the same API examples as Compose with these Kubernetes URLs:
+
+- authentication: `http://localhost:31050`;
+- employee: `http://localhost:31051`;
+- director: `http://localhost:31052`.
+
+### 7. Inspect MongoDB with Compass
+
+Forward MongoDB to a free host port:
+
+```powershell
+kubectl port-forward service/mongodb 27018:27017 -n iep-investment-fund
+```
+
+In MongoDB Compass, connect with:
+
+```text
+mongodb://root:example@localhost:27018/?authSource=admin
+```
+
+Open database `investment_fund` and collection `assets`. The port-forward command must remain running while Compass is connected.
+
+### 8. Inspect Redis
+
+Redis is intentionally an internal ClusterIP service. Inspect it through the Redis Pod:
+
+```powershell
+kubectl get pods -n iep-investment-fund -l app=redis
+kubectl exec -n iep-investment-fund deployment/redis -- redis-cli ping
+kubectl exec -n iep-investment-fund deployment/redis -- redis-cli SMEMBERS fund:orders:pending
+kubectl exec -n iep-investment-fund deployment/redis -- redis-cli KEYS 'fund:orders:*'
+```
+
+For a particular order:
+
+```powershell
+kubectl exec -n iep-investment-fund deployment/redis -- redis-cli GET fund:orders:<uuid>
+```
+
+### 9. Useful Kubernetes commands
+
+```powershell
+kubectl get all -n iep-investment-fund
+kubectl get pvc -n iep-investment-fund
+kubectl get endpoints -n iep-investment-fund
+kubectl describe pod <pod-name> -n iep-investment-fund
+kubectl logs deployment/employee -n iep-investment-fund
+kubectl logs deployment/director -n iep-investment-fund
+kubectl exec -it deployment/employee -n iep-investment-fund -- /bin/sh
+```
+
+If a Pod is not ready, check `kubectl describe pod` events first, then inspect its logs. `CreateContainerConfigError` usually means a ConfigMap or Secret key is missing. `ImagePullBackOff` usually means the image was not built with the exact tag used by the manifest.
+
+### 10. Persistence test
+
+Do not delete PVCs. Recreate database Pods and verify that data remains:
+
+```powershell
+kubectl delete pod -l app=mongodb -n iep-investment-fund
+kubectl delete pod -l app=redis -n iep-investment-fund
+kubectl wait --for=condition=available deployment/mongodb -n iep-investment-fund --timeout=180s
+kubectl wait --for=condition=available deployment/redis -n iep-investment-fund --timeout=180s
+kubectl get pvc -n iep-investment-fund
+```
+
+MongoDB assets and Redis pending orders should still exist because the PVCs were retained.
+
+### 11. Cleanup
+
+To stop the project while retaining persistent data, delete Deployments and Services or leave the namespace running. To remove the complete local project, including PVCs and data, use this only deliberately:
+
+```powershell
+kubectl delete namespace iep-investment-fund
+```
+
+Deleting the namespace removes the project resources. Treat this as destructive for the local Kubernetes data.
+
 ## Project Plan
 
 The implementation plan and later MongoDB, Redis, Docker service split, and Kubernetes phases are documented in [PROJECT_PLAN.md](PROJECT_PLAN.md). The optional Ethereum blockchain voting extension is not part of this implementation.

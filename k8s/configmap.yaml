@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: iep-config
+  namespace: iep-investment-fund
+data:
+  ENVIRONMENT: "kubernetes"
+  DATABASE_NAME: "investment_fund"
+  DATABASE_SERVICE: "mysql"
+  MONGO_DATABASE: "investment_fund"
+  MONGO_SERVICE: "mongodb"
+  MONGO_PORT: "27017"
+  REDIS_SERVICE: "redis"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  AUTHENTICATION_PORT: "5000"
+  EMPLOYEE_PORT: "5001"
+  DIRECTOR_PORT: "5002"

@@ -1,0 +1,34 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: authentication-migration
+  namespace: iep-investment-fund
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: authentication-migration
+          image: iep-authentication:k8s
+          imagePullPolicy: IfNotPresent
+          command: ["flask"]
+          args: ["--app", "migrate:application", "db", "upgrade"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: iep-config
+                  key: DATABASE_SERVICE
+            - name: DATABASE_USERNAME
+              value: "root"
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: iep-secrets
+                  key: MYSQL_ROOT_PASSWORD
+            - name: DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: iep-config
+                  key: DATABASE_NAME
