@@ -35,10 +35,30 @@ Phase 2 service URLs:
 
 - Employee API: `http://localhost:5001`
 - Director API: `http://localhost:5003` (container port `5002`)
-- MongoDB: `mongodb://root:example@localhost:27017/?authSource=admin`
+- MongoDB: `mongodb://root:example@localhost:27018/?authSource=admin`
 - Redis: `localhost:6379`
 
 The director host port is `5003` because port `5002` was occupied on the development machine. Only the host mapping is changed; the director listens on port `5002` inside its container.
+
+The MongoDB host port is `27018` because port `27017` is already used by another MongoDB process on the development machine. Only the host mapping is changed. Application containers continue to use `mongodb:27017` inside the Compose network.
+
+To connect from MongoDB Compass, open the desktop application on the host machine and use:
+
+```text
+mongodb://root:example@localhost:27018/?authSource=admin
+```
+
+After connecting, open the `investment_fund` database and its `assets` collection. If Compass still shows databases from an older exercise, edit the saved connection and verify that it uses port `27018`, not `27017`.
+
+To recreate the services after this port change:
+
+```powershell
+docker compose -f development.yaml down
+docker compose -f development.yaml up --build -d
+docker compose -f development.yaml ps
+```
+
+Do not use `docker compose down -v` during a normal restart because the `mongodb_volume` contains the persistent MongoDB data.
 
 Use these Adminer connection values:
 

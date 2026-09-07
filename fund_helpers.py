@@ -72,9 +72,9 @@ def order_key(order_uuid):
 
 def store_order(order):
     # The order document and index entry are written in one Redis transaction.
-    with redis_client.pipeline(transaction=True) as pipeline:
-        pipeline.set(order_key(order["uuid"]), json.dumps(order))
-        pipeline.sadd(ORDER_INDEX_KEY, order["uuid"])
+    with redis_client.pipeline(transaction=True) as pipeline: # grouping of redis operations in one transaction
+        pipeline.set(order_key(order["uuid"]), json.dumps(order)) # documents of orders
+        pipeline.sadd(ORDER_INDEX_KEY, order["uuid"]) # only ids of orders
         pipeline.execute()
 
 
@@ -91,7 +91,7 @@ def get_order(order_uuid):
 def remove_order(order_uuid):
     with redis_client.pipeline(transaction=True) as pipeline:
         pipeline.delete(order_key(order_uuid))
-        pipeline.srem(ORDER_INDEX_KEY, order_uuid)
+        pipeline.srem(ORDER_INDEX_KEY, order_uuid) #remove from set
         pipeline.execute()
 
 
