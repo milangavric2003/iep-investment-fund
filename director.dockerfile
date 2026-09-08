@@ -10,6 +10,6 @@ COPY decorators.py fund_configuration.py fund_helpers.py director.py mongo_seed.
 RUN chmod +x ./fund_start.sh
 
 ENV SERVICE_MODULE=director.py
-ENV RUN_MONGO_SEED=1
+ENV RUN_MONGO_SEED=0
 
 ENTRYPOINT ["./fund_start.sh"]

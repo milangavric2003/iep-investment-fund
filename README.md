@@ -29,7 +29,13 @@ The services are available at:
 
 The application container waits for MySQL, applies Flask-Migrate migrations, loads `seed.sql`, and starts the API. MySQL data is stored in the `database_volume` named volume.
 
-The employee and director containers wait for MongoDB and Redis before starting. The director container loads two idempotent demo assets into MongoDB. MongoDB data is stored in `mongodb_volume`; Redis data is stored in `redis_volume`.
+The employee and director containers wait for MongoDB and Redis before starting. Demo assets are not loaded automatically, so a clean Compose start is also suitable for the integration grader. MongoDB data is stored in `mongodb_volume`; Redis data is stored in `redis_volume`.
+
+To load the two idempotent demo assets for a manual presentation, run this after the services are healthy:
+
+```powershell
+docker compose -f development.yaml exec director python mongo_seed.py
+```
 
 Phase 2 service URLs:
 
@@ -149,6 +155,33 @@ Use MongoDB Compass with the MongoDB URI above. The demo collection is `investme
 
 Redis inspection commands are documented in [redis_keys.md](redis_keys.md).
 
+## Run the Grader
+
+Install the grader dependencies into the project virtual environment:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r tests\iep_grader\requirements-pytest.txt
+```
+
+The grader is stateful, so start from clean database volumes when a completely fresh run is needed:
+
+```powershell
+docker compose -f development.yaml down -v
+docker compose -f development.yaml up --build -d
+```
+
+Run the authentication and non-blockchain grader with the Compose host mappings:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q tests\iep_grader --type all `
+  --authentication-url http://127.0.0.1:5000 `
+  --jwt-secret development-secret-key-with-at-least-32-bytes `
+  --roles-field role --employee-role EMPLOYEE --director-role DIRECTOR `
+  --with-authentication --employee-url http://127.0.0.1:5001 `
+  --director-url http://127.0.0.1:5003 --wait-for-services `
+  --grade-report-file grade_report.json
+```
+
 ## Kubernetes Runbook
 
 The Kubernetes configuration is in the `k8s` directory. The documented target is Docker Desktop Kubernetes. The Compose setup remains available and is not replaced by Kubernetes.
@@ -169,12 +202,12 @@ The expected context is usually `docker-desktop`, and the node should be `Ready`
 Run these commands from the project directory. Docker Desktop Kubernetes can use images built by the local Docker engine:
 
 ```powershell
-docker build -t iep-authentication:k8s -f authentication.dockerfile .
-docker build -t iep-employee:k8s -f employee.dockerfile .
-docker build -t iep-director:k8s -f director.dockerfile .
+docker build -t iep-authentication:k8s-20260908 -f authentication.dockerfile .
+docker build -t iep-employee:k8s-20260908 -f employee.dockerfile .
+docker build -t iep-director:k8s-20260908 -f director.dockerfile .
 ```
 
-The manifests use `imagePullPolicy: IfNotPresent`, so Kubernetes will use these local images.
+The manifests use `imagePullPolicy: IfNotPresent`, so Kubernetes will use these local images. The date-stamped tag prevents Kubernetes from silently reusing an older cached image with the same generic tag. When application code changes, use a new tag in the three Docker build commands and in the four application image references under `k8s/`.
 
 ### 3. Apply configuration and storage
 
@@ -225,7 +258,7 @@ The employee Deployment must have exactly three ready Pods.
 
 ### 6. Access APIs with port-forward
 
-NodePort Services are defined on ports `30050`-`30052`, but port-forward is more portable across local Kubernetes installations and avoids Windows host port behavior differences. Use separate terminals for these commands:
+NodePort Services are defined on ports `30050`-`30052`, but port-forward is more portable across local Kubernetes installations and avoids Windows host port behavior differences. Use separate terminals for these commands AND LEFT THAT PROCESSES RUNNING IN TERMINAL:
 
 ```powershell
 kubectl port-forward service/authentication 31050:5000 -n iep-investment-fund
@@ -238,6 +271,31 @@ Then use the same API examples as Compose with these Kubernetes URLs:
 - authentication: `http://localhost:31050`;
 - employee: `http://localhost:31051`;
 - director: `http://localhost:31052`.
+
+The grader is deployment-agnostic. It sends HTTP requests to the URLs supplied on the command line, so it can test Docker Compose or Kubernetes without any test-code changes. For Kubernetes, keep the three port-forward commands running in separate terminals and use this command from a fourth terminal:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q tests\iep_grader --type all `
+  --authentication-url http://127.0.0.1:31050 `
+  --jwt-secret development-secret-key-with-at-least-32-bytes `
+  --roles-field role --employee-role EMPLOYEE --director-role DIRECTOR `
+  --with-authentication --employee-url http://127.0.0.1:31051 `
+  --director-url http://127.0.0.1:31052 --wait-for-services `
+  --grade-report-file grade_report_kubernetes.json
+```
+
+!!!IF RUNNING TEST TWO TIMES - run this command to delete previously left state in databases: 
+```powershell
+kubectl exec -n iep-investment-fund deployment/authentication -- python -c "from main import application; from models import User, database; application.app_context().push(); user=User.query.filter_by(email='john@gmail.com').first(); print('deleted', user.email if user else None); database.session.delete(user) if user else None; database.session.commit()"; kubectl exec -n iep-investment-fund deployment/mongodb -- mongosh --quiet --username root --password example --authenticationDatabase admin --eval "db.getSiblingDB('investment_fund').assets.deleteMany({})"; kubectl exec -n iep-investment-fund deployment/redis -- redis-cli FLUSHDB
+```
+
+Kubernetes uses port `5002` for the director Service internally. The Compose host mapping uses `5003` only because another host process occupied port `5002`; this difference does not affect the application or the grader. NodePort values `30050`-`30052` are also defined, but port-forward is the recommended access method because Docker Desktop and other local clusters can expose NodePorts differently on Windows.
+
+The Kubernetes manifests intentionally do not load demo MongoDB assets automatically, so a clean cluster can be tested without extra data. For a manual presentation, load the idempotent demo assets with:
+
+```powershell
+kubectl exec -n iep-investment-fund deployment/director -- python mongo_seed.py
+```
 
 ### 7. Inspect MongoDB with Compass
 
@@ -270,6 +328,12 @@ For a particular order:
 
 ```powershell
 kubectl exec -n iep-investment-fund deployment/redis -- redis-cli GET fund:orders:<uuid>
+```
+
+!!!OR JUST FROM CONTAINER LIKE THIS:
+```powershell
+kubectl exec -it deployment/redis -n iep-investment-fund -- /bin/sh
+redis-cli
 ```
 
 ### 9. Useful Kubernetes commands

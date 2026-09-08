@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: director
-          image: iep-director:k8s
+          image: iep-director:k8s-20260908
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5002

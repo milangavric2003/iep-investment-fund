@@ -96,6 +96,7 @@ services:
       REDIS_PORT: 6379
       REDIS_DB: 0
       JWT_SECRET_KEY: development-secret-key-with-at-least-32-bytes
+      RUN_MONGO_SEED: "0"
     ports:
       - "5003:5002"
     depends_on:

@@ -1,3 +1,5 @@
+import re
+
 from email_validator import EmailNotValidError, validate_email
 from flask import Flask, jsonify, request
 from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, jwt_required
@@ -18,7 +20,11 @@ def missing_field(payload, field_name):
 
 
 def invalid_email(email):
-    if not isinstance(email, str) or len(email) > 256:
+    if (
+        not isinstance(email, str)
+        or len(email) > 256
+        or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[A-Za-z]{2,}", email)
+    ):
         return True
 
     try:

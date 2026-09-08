@@ -10,7 +10,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: authentication-migration
-          image: iep-authentication:k8s
+          image: iep-authentication:k8s-20260908
           imagePullPolicy: IfNotPresent
           command: ["flask"]
           args: ["--app", "migrate:application", "db", "upgrade"]

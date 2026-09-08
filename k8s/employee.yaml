@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: employee
-          image: iep-employee:k8s
+          image: iep-employee:k8s-20260908
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5001

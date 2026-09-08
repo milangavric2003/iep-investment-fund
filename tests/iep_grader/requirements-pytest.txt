@@ -1,0 +1,6 @@
+-r requirements.txt
+pytest>=8.0
+pytest-json-report>=1.5.0
+pytest-html>=4.1.0
+# web3 6.5.0 imports pkg_resources, which was removed from newer setuptools.
+setuptools<81

@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: authentication
-          image: iep-authentication:k8s
+          image: iep-authentication:k8s-20260908
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000

@@ -10,7 +10,8 @@ def role_required(required_role):
         @wraps(function)
         def wrapper(*args, **kwargs):
             if get_jwt().get("role") != required_role:
-                return jsonify(message="Invalid role."), 403
+                # The project contract uses the same 401 response for missing and unauthorized roles.
+                return jsonify(msg="Missing Authorization Header"), 401
             return function(*args, **kwargs)
 
         return wrapper
