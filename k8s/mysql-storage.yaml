@@ -8,6 +8,7 @@ spec:
     storage: 1Gi
   accessModes:
     - ReadWriteOnce
+  # Keep the PV and its data when the PVC is deleted accidentally.
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
   hostPath:

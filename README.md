@@ -230,6 +230,26 @@ kubectl wait --for=condition=available deployment/redis -n iep-investment-fund -
 kubectl get pods,pvc,services -n iep-investment-fund
 ```
 
+If a previous local installation left one of these PVCs in `Pending` and its
+PV in `Released`, the old PVC-to-PV binding must be removed before retrying.
+This is a local-cluster recovery step; it does not remove the hostPath
+directories or their data. Run it only when the affected database Pods are
+not being used:
+
+```powershell
+kubectl delete pvc mysql-pvc mongodb-pvc redis-pvc -n iep-investment-fund
+kubectl delete pv mysql-pv mongodb-pv redis-pv
+kubectl apply -f k8s/mysql-storage.yaml
+kubectl apply -f k8s/mongodb.yaml
+kubectl apply -f k8s/redis.yaml
+```
+
+The storage manifests intentionally use `persistentVolumeReclaimPolicy: Retain`.
+This preserves the PV and its data if a PVC is deleted accidentally. A retained
+PV becomes `Released` after its PVC is deleted, so the manual recovery above is
+required before reusing the same static PV name. Do not delete PVCs during the
+normal restart or persistence test.
+
 ### 4. Run the relational migration Job
 
 ```powershell
@@ -256,7 +276,34 @@ kubectl get pods -n iep-investment-fund -l app=employee
 
 The employee Deployment must have exactly three ready Pods.
 
-### 6. Access APIs with port-forward
+### 6. Access MySQL through Adminer
+
+MySQL is intentionally exposed only as an internal `ClusterIP` Service. Open
+Adminer through a local port-forward in a separate PowerShell terminal and
+leave that command running:
+
+```powershell
+kubectl port-forward service/adminer 18080:8080 -n iep-investment-fund
+```
+
+Open `http://localhost:18080` in a browser and use these login values:
+
+- System: `MySQL`
+- Server: `mysql`
+- Username: `root`
+- Password: `root`
+- Database: `investment_fund`
+
+The Server value must be `mysql`, because Adminer connects to MySQL from
+inside the Kubernetes network. Do not use `localhost` there. The database
+tables are available after the `authentication-migration` Job has completed.
+
+Adminer also has a NodePort Service on `30080`, so Docker Desktop may expose it
+at `http://localhost:30080`. Port-forwarding is recommended because it works
+consistently across local Kubernetes installations and avoids host port
+conflicts.
+
+### 7. Access APIs with port-forward
 
 NodePort Services are defined on ports `30050`-`30052`, but port-forward is more portable across local Kubernetes installations and avoids Windows host port behavior differences. Use separate terminals for these commands AND LEFT THAT PROCESSES RUNNING IN TERMINAL:
 
@@ -297,7 +344,7 @@ The Kubernetes manifests intentionally do not load demo MongoDB assets automatic
 kubectl exec -n iep-investment-fund deployment/director -- python mongo_seed.py
 ```
 
-### 7. Inspect MongoDB with Compass
+### 8. Inspect MongoDB with Compass
 
 Forward MongoDB to a free host port:
 
@@ -313,7 +360,7 @@ mongodb://root:example@localhost:27018/?authSource=admin
 
 Open database `investment_fund` and collection `assets`. The port-forward command must remain running while Compass is connected.
 
-### 8. Inspect Redis
+### 9. Inspect Redis
 
 Redis is intentionally an internal ClusterIP service. Inspect it through the Redis Pod:
 
@@ -336,7 +383,7 @@ kubectl exec -it deployment/redis -n iep-investment-fund -- /bin/sh
 redis-cli
 ```
 
-### 9. Useful Kubernetes commands
+### 10. Useful Kubernetes commands
 
 ```powershell
 kubectl get all -n iep-investment-fund
@@ -350,7 +397,7 @@ kubectl exec -it deployment/employee -n iep-investment-fund -- /bin/sh
 
 If a Pod is not ready, check `kubectl describe pod` events first, then inspect its logs. `CreateContainerConfigError` usually means a ConfigMap or Secret key is missing. `ImagePullBackOff` usually means the image was not built with the exact tag used by the manifest.
 
-### 10. Persistence test
+### 11. Persistence test
 
 Do not delete PVCs. Recreate database Pods and verify that data remains:
 
@@ -364,7 +411,7 @@ kubectl get pvc -n iep-investment-fund
 
 MongoDB assets and Redis pending orders should still exist because the PVCs were retained.
 
-### 11. Cleanup
+### 12. Cleanup
 
 To stop the project while retaining persistent data, delete Deployments and Services or leave the namespace running. To remove the complete local project, including PVCs and data, use this only deliberately:
 
