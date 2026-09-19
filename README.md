@@ -417,6 +417,7 @@ To stop the project while retaining persistent data, delete Deployments and Serv
 
 ```powershell
 kubectl delete namespace iep-investment-fund
+!!!verovatno i kubectl delete all --all
 ```
 
 Deleting the namespace removes the project resources. Treat this as destructive for the local Kubernetes data.
@@ -424,3 +425,26 @@ Deleting the namespace removes the project resources. Treat this as destructive 
 ## Project Plan
 
 The implementation plan and later MongoDB, Redis, Docker service split, and Kubernetes phases are documented in [PROJECT_PLAN.md](PROJECT_PLAN.md). The optional Ethereum blockchain voting extension is not part of this implementation.
+
+# Testiranje kad radis modifikaciju
+
+- netstat -ano | findstr LISTENING => komanda za listanje portova koji slusaju
+
+- na primer menjamo nesto u main.py i koristimo `kubernetes za testiranje`: 
+  1) docker build -t iep-authentication:k8s-v2 -f authentication.dockerfile . => novi image sa novim tagom
+  2) promeni u authentication.yaml, novi tag stavi
+  3) kubectl apply -f k8s/authentication.yaml
+  
+- ili mozda moze i ovako ali `docker compose` da se primenjuje:
+  1) dodas ovo u yaml: 
+    environment:
+      ...
+        FLASK_ENV: development     # <--- DODAO
+      FLASK_DEBUG: "1"
+    ports: ...
+    volumes:
+      - .:/app (ili sta god je putanja do foldera koji ocemo da mountujemo u kontejner u app folder
+  2) pokreces docker compose i gasis ga da bi mogo kubernetes:
+    docker compose -f development.yaml up --build -d (-d oslobadja terminal)
+    docker compose -f development.yaml down (bez -v koje brise volumene da ne bi izgubio podatke u bazama)
+
