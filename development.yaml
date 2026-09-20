@@ -77,8 +77,12 @@ services:
       REDIS_PORT: 6379
       REDIS_DB: 0
       JWT_SECRET_KEY: development-secret-key-with-at-least-32-bytes
+      FLASK_ENV: development     # <--- DODAO
+      FLASK_DEBUG: "1"
     ports:
       - "5001:5001"
+    volumes:
+      - .:/app
     depends_on:
       mongodb:
         condition: service_healthy
@@ -97,8 +101,12 @@ services:
       REDIS_DB: 0
       JWT_SECRET_KEY: development-secret-key-with-at-least-32-bytes
       RUN_MONGO_SEED: "0"
+      FLASK_ENV: development     # <--- DODAO
+      FLASK_DEBUG: "1"
     ports:
       - "5003:5002"
+    volumes:
+      - .:/app
     depends_on:
       mongodb:
         condition: service_healthy

@@ -170,6 +170,17 @@ def create_sell_order():
 #     return jsonify(message=f"Num of categories: {numOfCategories}"), 200
 #     # return jsonify(message=f"Num of categories: "), 200
 
+# get assets from category with buying price > min_price
+@application.route("/getExpensiveAssets/<category>/<min_price>", methods=["GET"])
+@role_required("EMPLOYEE")
+def getExpensiveAssets(category, min_price):
+    query = {}
+    query["categories"] = category
+    query["buying_price"] = {"$gt": int(min_price)}
+
+    numOfCategories = mongo_database.assets.count_documents(query)
+    assets = mongo_database.assets.find(query)
+    return jsonify(assets=[asset_to_response(asset) for asset in assets], number=numOfCategories), 200
 
 if __name__ == "__main__":
     application.run(host="0.0.0.0", port=5001)

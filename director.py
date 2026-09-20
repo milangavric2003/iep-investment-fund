@@ -130,5 +130,21 @@ def report():
 
 #     return jsonify(stat = result), 200
 
+@application.route("/getAverageProfit", methods=["GET"])
+#@role_required("DIRECTOR")
+def getAverageProfit():
+    from bson import ObjectId
+    pipeline = [
+        {
+            "$project": {
+                "_id": {"$toString": "$_id"},
+                "selling_price": 1,
+                "buying_price": 1,
+                "profit": {"$subtract": ["$selling_price", "$buying_price"]},
+            }
+        }
+    ]
+    return jsonify(statistics=list(mongo_database.assets.aggregate(pipeline))), 200
+
 if __name__ == "__main__":
     application.run(host="0.0.0.0", port=5002)
