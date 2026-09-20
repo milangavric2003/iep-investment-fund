@@ -111,6 +111,24 @@ def report():
     ]
     return jsonify(statistics=list(mongo_database.assets.aggregate(pipeline))), 200
 
+# # returns the biggest profit (selling_price - buying_price) of all selled assets (with selling_price lte 175000)
+# @application.route("/getBiggestProfit", methods=["GET"])
+# @role_required("DIRECTOR")
+# def getBiggestProfit():
+#     assets = mongo_database.assets.find({"selling_price": {"$lte": 175000 } }, {"_id": 1, "buying_price": 1, "selling_price": 1})
+#     if not assets:
+#         return jsonify(message="No solid assets found."), 400
+
+#     assetMax = assets[0].get("selling_price", 0) - assets[0].get("buying_price", 0)
+#     assetMaxObj = assets[0]
+#     for asset in assets:
+#         if asset.get("selling_price", 0) - asset.get("buying_price", 0) > assetMax:
+#             assetMax = asset.get("selling_price", 0) - asset.get("buying_price", 0)
+#             assetMaxObj = asset
+
+#     result = [{"id": str(assetMaxObj.get("_id")), "profit": assetMax}]
+
+#     return jsonify(stat = result), 200
 
 if __name__ == "__main__":
     application.run(host="0.0.0.0", port=5002)

@@ -160,6 +160,16 @@ def create_sell_order():
     store_order(order)
     return "", 200
 
+# # exercise - return number of assets from category
+# @application.route("/numAssets/<category>", methods=["GET"])
+# @role_required("EMPLOYEE")
+# def numAssets(category):
+#     query = {}
+#     query["categories"] = category
+#     numOfCategories = mongo_database.assets.count_documents(query)
+#     return jsonify(message=f"Num of categories: {numOfCategories}"), 200
+#     # return jsonify(message=f"Num of categories: "), 200
+
 
 if __name__ == "__main__":
     application.run(host="0.0.0.0", port=5001)

@@ -447,4 +447,25 @@ The implementation plan and later MongoDB, Redis, Docker service split, and Kube
   2) pokreces docker compose i gasis ga da bi mogo kubernetes:
     docker compose -f development.yaml up --build -d (-d oslobadja terminal)
     docker compose -f development.yaml down (bez -v koje brise volumene da ne bi izgubio podatke u bazama)
+  3) docker compose -f development.yaml logs -f [service name] => da ocitas ispis kontejnera sa imenom   service name
+
+## Pull image iz .tar.gz arhive
+  ```
+  docker load -i naziv_fajla.tar.gz
+  ```
+
+## Promena na .venv okruzenje i Install requirements
+  ```
+  .venv\Scripts\Activate.ps1
+  pip install -r requirements.txt
+  ```
+  to exit .venv just type ```deactivate```
+
+## Problem sa kesiranjem kada menjas dockerfile bez interneta
+  pogledaj za kesiranje - mozda:
+		1)```RUN pip install --no-cache-dir -r requirements.txt``` u dockerfile
+		ili
+		2)```docker build --no-cache -t iep-mod_logging_report:v2 -f mod_logging_report.dockerfile .```
+			kada pravis image
+
 
