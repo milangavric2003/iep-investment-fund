@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mod-logging-report
+  namespace: iep-investment-fund
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mod-logging-report
+  template:
+    metadata:
+      labels:
+        app: mod-logging-report
+    spec:
+      containers:
+        - name: mod-logging-report
+          image: iep-mod_logging_report:k8s-20260908-v2
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MONGO_URL
+              valueFrom:
+                secretKeyRef:
+                  name: iep-secrets
+                  key: MONGO_URL
+            - name: MONGO_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: iep-config
+                  key: MONGO_DATABASE
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: iep-config
+                  key: REDIS_SERVICE
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: iep-config
+                  key: REDIS_PORT
+            - name: REDIS_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: iep-config
+                  key: REDIS_DB
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: iep-secrets
+                  key: JWT_SECRET_KEY
+# mod_logging_report.py is a worker script that only processes orders in a loop and doesn't expose an API
+# removed the readiness and liveness probes
+# no need for ports

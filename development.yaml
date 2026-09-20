@@ -105,6 +105,30 @@ services:
       redis:
         condition: service_healthy
 
+  mod_logging_report:
+    build:
+      context: .
+      dockerfile: mod_logging_report.dockerfile
+    environment:
+      MONGO_URL: mongodb://root:example@mongodb:27017/?authSource=admin
+      MONGO_DATABASE: investment_fund
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      JWT_SECRET_KEY: development-secret-key-with-at-least-32-bytes
+      RUN_MONGO_SEED: "0"
+      FLASK_ENV: development     # <--- DODAO
+      FLASK_DEBUG: "1"
+    ports:
+      - "5004:5004"
+    volumes:
+      - .:/app
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
 volumes:
   database_volume:
   mongodb_volume:

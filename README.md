@@ -426,7 +426,7 @@ Deleting the namespace removes the project resources. Treat this as destructive 
 
 The implementation plan and later MongoDB, Redis, Docker service split, and Kubernetes phases are documented in [PROJECT_PLAN.md](PROJECT_PLAN.md). The optional Ethereum blockchain voting extension is not part of this implementation.
 
-# Testiranje kad radis modifikaciju
+## Testiranje kad radis modifikaciju
 
 - netstat -ano | findstr LISTENING => komanda za listanje portova koji slusaju
 
@@ -447,4 +447,9 @@ The implementation plan and later MongoDB, Redis, Docker service split, and Kube
   2) pokreces docker compose i gasis ga da bi mogo kubernetes:
     docker compose -f development.yaml up --build -d (-d oslobadja terminal)
     docker compose -f development.yaml down (bez -v koje brise volumene da ne bi izgubio podatke u bazama)
+  3) docker compose -f development.yaml logs -f [service name] => da ocitas ispis kontejnera sa imenom   service name
 
+## Pull image iz .tar.gz arhive
+  ```
+  docker load -i naziv_fajla.tar.gz
+  ```
